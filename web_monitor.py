@@ -8,11 +8,11 @@ import os
 URL = "https://google.com"
 
 # Alert email configuration - using environment variables
-SENDER_EMAIL = os.getenv("SENDER_EMAIL")
-RECEIVER_EMAIL = os.getenv("RECEIVER_EMAIL")
+SENDER_EMAIL = os.getenv("saisameerareddy7@gmail.com")
+RECEIVER_EMAIL = os.getenv("sameerareddy300404@gmail.com")
 SMTP_SERVER = "smtp.gmail.com"
 SMTP_PORT = 587
-EMAIL_PASSWORD = os.getenv("EMAIL_PASSWORD")
+EMAIL_PASSWORD = os.getenv("vamsi_0505")
 
 # Function to check website status
 def check_website():
