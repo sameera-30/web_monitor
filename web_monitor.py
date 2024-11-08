@@ -1,51 +1,70 @@
-import requests
-import smtplib
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
 import time
+import os
+from selenium import webdriver
+from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.common.by import By
+from webdriver_manager.chrome import ChromeDriverManager
+from slack_sdk import WebClient
+from slack_sdk.errors import SlackApiError
 
-# Website URL to monitor
-URL = "https://google.com"
+# Constants
+URL = "https://www.google.com"  # The website you want to monitor
+SLACK_TOKEN = os.getenv("SLACK_TOKEN")  # Use GitHub Actions secrets for the Slack bot token
+SLACK_CHANNEL = "#alerts"  # Replace with your Slack channel name
 
-# Alert email configuration
-SENDER_EMAIL = "saisameerareddy7@gmail.com"
-RECEIVER_EMAIL = "sameerareddy300404@gmail.com"
-SMTP_SERVER = "smtp.gmail.com"
-SMTP_PORT = 587
-EMAIL_PASSWORD = "vamsi_0505"
+# Initialize Slack client
+slack_client = WebClient(token=SLACK_TOKEN)
 
-# Function to check website status
-def check_website():
+# Function to send alert to Slack
+def send_slack_alert(message):
     try:
-        response = requests.get(URL, timeout=10)
-        if response.status_code == 200:
-            print(f"Website {URL} is up. Status code: {response.status_code}")
-        else:
-            print(f"Warning: Website {URL} returned status code {response.status_code}")
-            send_alert_email(f"Website {URL} returned status code {response.status_code}")
-    except requests.RequestException as e:
-        print(f"Error: Website {URL} is down. Error: {e}")
-        send_alert_email(f"Website {URL} is down. Error: {e}")
+        slack_client.chat_postMessage(channel=SLACK_CHANNEL, text=message)
+        print("Slack alert sent successfully.")
+    except SlackApiError as e:
+        print(f"Error sending alert to Slack: {e.response['error']}")
 
-# Function to send an alert email
-def send_alert_email(message):
-    msg = MIMEMultipart()
-    msg["From"] = SENDER_EMAIL
-    msg["To"] = RECEIVER_EMAIL
-    msg["Subject"] = f"Alert: Issue with {URL}"
-    msg.attach(MIMEText(message, "plain"))
+# Function to check website performance
+def check_performance():
+    # Setup Chrome options for headless mode
+    chrome_options = Options()
+    chrome_options.add_argument("--headless")  # Headless mode for non-GUI testing
+    chrome_options.add_argument("--no-sandbox")
+    chrome_options.add_argument("--disable-dev-shm-usage")
+
+    # Initialize Chrome WebDriver
+    service = Service(ChromeDriverManager().install())
+    driver = webdriver.Chrome(service=service, options=chrome_options)
 
     try:
-        with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
-            server.starttls()
-            server.login(SENDER_EMAIL, EMAIL_PASSWORD)
-            server.sendmail(SENDER_EMAIL, RECEIVER_EMAIL, msg.as_string())
-            print("Alert email sent.")
+        print("Running website monitoring checks...")
+        start_time = time.time()
+        driver.get(URL)  # Access the URL
+
+        # Check if the page loaded successfully by locating an element
+        try:
+            element = driver.find_element(By.TAG_NAME, "h1")  # Replace with a reliable element on the page
+            load_time = time.time() - start_time
+            print(f"Page loaded successfully in {load_time:.2f} seconds.")
+            
+            # Example alert if page load time exceeds threshold (e.g., 3 seconds)
+            if load_time > 3:
+                send_slack_alert(f"Warning: {URL} took {load_time:.2f} seconds to load.")
+            else:
+                print("Load time is within acceptable range.")
+                
+        except Exception as e:
+            print("Page element not found. The site may be down.")
+            send_slack_alert(f"Error: {URL} is not loading correctly - {str(e)}")
+
     except Exception as e:
-        print(f"Failed to send alert email: {e}")
+        print(f"Error accessing the URL: {e}")
+        send_slack_alert(f"Error accessing {URL}: {e}")
 
-# Periodic monitoring
+    finally:
+        # Close the driver
+        driver.quit()
+
+# Run performance check
 if __name__ == "__main__":
-    while True:
-        check_website()
-        time.sleep(300)  # Check every 5 minutes
+    check_performance()
