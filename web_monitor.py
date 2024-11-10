@@ -12,7 +12,7 @@ SENDER_EMAIL = os.getenv("saisameerareddy7@gmail.com")
 RECEIVER_EMAIL = os.getenv("sameerareddy300404@gmail.com")
 SMTP_SERVER = "smtp.gmail.com"
 SMTP_PORT = 587
-EMAIL_PASSWORD = os.getenv("vamsi_0505")
+EMAIL_PASSWORD = os.getenv("sameera_0505")
 
 # Function to check website status
 def check_website():
